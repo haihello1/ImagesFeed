@@ -3,8 +3,9 @@ import UIKit
 // MARK: - Colors
 enum AppColors {
     static let background = UIColor(hex: "#1A1B22")
-    static let textPrimary = UIColor.white
-    static let textSecondary = UIColor.systemGray
+    static let buttonBackground = UIColor.white
+    static let textPrimary = UIColor.systemGray
+    static let textSecondary = UIColor.white
     static let accent = UIColor.systemBlue
     static let tabBarUnselected = UIColor.systemGray
 }
@@ -26,4 +27,14 @@ enum AppLayout {
     static let likeImageSize: CGFloat = 44
     static let avatarSize: CGFloat = 70
     static let profileTopSpacing: CGFloat = 32
+}
+
+enum UnsplashConst {
+    static let accessKey = "eQAonmsvWJxUHtGJv22w3xpomfXherp6Q-WzijhP8V0"
+    static let secretKey = "0aLlKTCzGSjU30o7sSCSvzojQeuR-eb0Bgo7a0mPPGk"
+    static let redirectURI = "urn:ietf:wg:oauth:2.0:oob"
+    static let accessScope = "public+read_user+write_likes"
+    static let defaultBaseURL = URL(string: "https://api.unsplash.com")!
+    static let unsplashAuthorizeURLString = "https://unsplash.com/oauth/authorize"
+
 }

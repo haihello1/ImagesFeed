@@ -15,7 +15,7 @@ final class ImageViewCell: UITableViewCell {
     private let dateLabel: UILabel = {
         let lbl = UILabel()
         lbl.font = AppFonts.body
-        lbl.textColor = AppColors.textPrimary
+        lbl.textColor = AppColors.textSecondary
         return lbl
     }()
     
