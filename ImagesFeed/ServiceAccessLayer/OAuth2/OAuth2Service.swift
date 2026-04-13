@@ -2,82 +2,97 @@
 import Foundation
 
 final class OAuth2Service {
+    
     static let shared = OAuth2Service()
-    
+
+    private let urlSession = URLSession.shared
+    private var task: URLSessionTask?
+    private var lastCode: String?
+
     private let tokenStorage = OAuth2TokenStorage()
-    
+
     private init() {}
-    
-    func fetchOAuthToken(
-        code: String,
-        completion: @escaping (Result<String, Error>) -> Void
-    ) {
-        guard let request = makeOAuthTokenRequest(code: code) else {
-            print("Failed to create request")
-            completion(.failure(NetworkError.invalidRequest))
+
+    func fetchOAuthToken(_ code: String, completion: @escaping (Result<String, Error>) -> Void) {
+        assert(Thread.isMainThread)
+
+        guard lastCode != code else {
+            completion(.failure(AuthServiceError.invalidRequest))
             return
         }
-        
-        print("Starting token request...")
-        
-        let task = URLSession.shared.data(for: request) { [weak self] result in
+
+        task?.cancel()
+        lastCode = code
+
+        guard let request = makeOAuthTokenRequest(code: code) else {
+            completion(.failure(AuthServiceError.invalidRequest))
+            return
+        }
+
+
+        let newTask = urlSession.objectTask(for: request) { [weak self] (result: Result<OAuthTokenResponseBody, Error>) in
             guard let self = self else { return }
-            
+
+            // игнорируем completion отменённого запроса
+            if let urlError = self.extractURLError(result), urlError.code == .cancelled {
+                return
+            }
+
+            self.task = nil
+            self.lastCode = nil
+
             switch result {
-            case .success(let data):
-                do {
-                    let decoder = JSONDecoder()
-                    let tokenResponse = try decoder.decode(OAuthTokenResponseBody.self, from: data)
-                    
-                    self.tokenStorage.token = tokenResponse.accessToken
-                    print("Token received and saved successfully")
-                    
-                    completion(.success(tokenResponse.accessToken))
-                    
-                } catch {
-                    print("Decoding error: \(error.localizedDescription)")
-                    completion(.failure(NetworkError.decodingError(error)))
-                }
-                
+            case .success(let tokenResponse):
+                completion(.success(tokenResponse.accessToken))
+
             case .failure(let error):
-                print("Request failed: \(error.localizedDescription)")
+                print("[OAuth2Service.fetchOAuthToken]: NetworkError - \(error), code: \(code)")
                 completion(.failure(error))
             }
         }
-        
-        task.resume()
+
+        self.task = newTask
+        newTask.resume()
     }
-    
+
+    private func extractURLError(_ result: Result<OAuthTokenResponseBody, Error>) -> URLError? {
+        if case .failure(let error) = result {
+            return error as? URLError
+        }
+        return nil
+    }
+
     private func makeOAuthTokenRequest(code: String) -> URLRequest? {
-        guard let baseURL = URL(string: "https://unsplash.com") else {
-            print("Failed to create base URL")
+
+        guard var urlComponents = URLComponents(url: UnsplashConst.defaultBaseURL, resolvingAgainstBaseURL: false) else {
+            print("[OAuth2Service.makeOAuthTokenRequest]: invalidRequest - code: \(code)")
             return nil
         }
-        
-        guard var urlComponents = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
-            print("Failed to create URLComponents")
-            return nil
-        }
-        
         urlComponents.path = "/oauth/token"
-        urlComponents.queryItems = [
-            URLQueryItem(name: "client_id", value: UnsplashConst.accessKey),
-            URLQueryItem(name: "client_secret", value: UnsplashConst.secretKey),
-            URLQueryItem(name: "redirect_uri", value: UnsplashConst.redirectURI),
-            URLQueryItem(name: "code", value: code),
-            URLQueryItem(name: "grant_type", value: "authorization_code")
-        ]
         
+        let bodyParams = [
+            "client_id": UnsplashConst.accessKey,
+            "client_secret": UnsplashConst.secretKey,
+            "redirect_uri": UnsplashConst.redirectURI,
+            "code": code,
+            "grant_type": "authorization_code"]
+            .map { "\($0.key)=\($0.value)" }
+            .joined(separator: "&")
+            .data(using: .utf8)
+
         guard let url = urlComponents.url else {
             print("Failed to create URL from components")
             return nil
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        
-        print("Request created: \(url.absoluteString)")
-        
+        request.httpBody = bodyParams
+
         return request
     }
+}
+
+enum AuthServiceError: Error {
+    case invalidRequest
 }

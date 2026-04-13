@@ -12,7 +12,7 @@ protocol WebViewViewControllerDelegate: AnyObject {
 final class WebViewViewController: UIViewController {
     
     weak var delegate: WebViewViewControllerDelegate?
-    
+    private var estimatedProgressObservation: NSKeyValueObservation?
     private let webView = WKWebView()
     
     private let progressView: UIProgressView = {
@@ -38,6 +38,13 @@ final class WebViewViewController: UIViewController {
         setupConstraints()
         setupNavigationBar()
         loadAuthView()
+        
+        estimatedProgressObservation = webView.observe(
+            \.estimatedProgress,
+            options: [.new]
+        ) { [weak self] _, _ in
+            self?.updateProgress()
+        }
     }
     
     private func setupNavigationBar() {
@@ -48,21 +55,6 @@ final class WebViewViewController: UIViewController {
         navigationController?.navigationBar.standardAppearance = appearance
         navigationController?.navigationBar.scrollEdgeAppearance = appearance
         navigationController?.navigationBar.compactAppearance = appearance
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        webView.addObserver(
-            self,
-            forKeyPath: #keyPath(WKWebView.estimatedProgress),
-            options: .new,
-            context: nil
-        )
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress))
     }
     
     private func setupBackButton() {
@@ -99,7 +91,6 @@ final class WebViewViewController: UIViewController {
         
         let request = URLRequest(url: url)
         webView.load(request)
-        print("✅ [WebViewViewController] Loading auth page")
     }
     
     private func setupConstraints() {
@@ -119,18 +110,6 @@ final class WebViewViewController: UIViewController {
 
 // MARK: - Progress update
 extension WebViewViewController {
-    override func observeValue(
-        forKeyPath keyPath: String?,
-        of object: Any?,
-        change: [NSKeyValueChangeKey : Any]?,
-        context: UnsafeMutableRawPointer?
-    ) {
-        if keyPath == #keyPath(WKWebView.estimatedProgress) {
-            updateProgress()
-        } else {
-            super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
-        }
-    }
     
     private func updateProgress() {
         progressView.progress = Float(webView.estimatedProgress)
@@ -150,7 +129,6 @@ extension WebViewViewController: WKNavigationDelegate {
             decisionHandler(.cancel)
             return
         }
-        
         decisionHandler(.allow)
     }
     
@@ -166,27 +144,3 @@ extension WebViewViewController: WKNavigationDelegate {
     }
 }
 
-extension AuthViewController: WebViewViewControllerDelegate {
-    func webViewViewControllerDidCancel(_ vc: WebViewViewController) {
-        navigationController?.popViewController(animated: true)
-    }
-    
-    func webViewViewController(_ vc: WebViewViewController, didAuthenticateWithCode code: String) {
-        print("Received code, fetching token...")
-        
-        navigationController?.popViewController(animated: true)
-        
-        OAuth2Service.shared.fetchOAuthToken(code: code) { [weak self] result in
-            guard let self = self else { return }
-            
-            switch result {
-            case .success:
-                print("Token saved successfully")
-                self.delegate?.didAuthenticate(self)
-                
-            case .failure(let error):
-                print("Authentication failed: \(error.localizedDescription)")
-            }
-        }
-    }
-}
