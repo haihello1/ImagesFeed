@@ -1,16 +1,16 @@
 import Foundation
 
 final class ProfileService: ProfileServiceProtocol {
-
+    
     // MARK: - Singleton
     static let shared = ProfileService()
     private init() {}
-
+    
     // MARK: - Properties
     private(set) var profile: Profile?
-        private let urlSession = URLSession.shared
-        private var task: URLSessionTask? // Добавили таск
-
+    private let urlSession = URLSession.shared
+    private var task: URLSessionTask? // Добавили таск
+    
     // MARK: - Public
     func fetchProfile(_ token: String, completion: @escaping (Result<Profile, Error>) -> Void) {
         
@@ -21,11 +21,11 @@ final class ProfileService: ProfileServiceProtocol {
             completion(.failure(ProfileRequestError.invalidRequest))
             return
         }
-
+        
         let newTask = urlSession.objectTask(for: request) { [weak self] (result: Result<ProfileResult, Error>) in
             guard let self else { return }
             self.task = nil // Очищаем таск после завершения
-
+            
             switch result {
             case .success(let profileResult):
                 let profile = Profile(
@@ -34,13 +34,13 @@ final class ProfileService: ProfileServiceProtocol {
                     loginName: "@\(profileResult.username ?? "")",
                     bio: profileResult.bio ?? ""
                 )
-
+                
                 self.profile = profile
-
+                
                 ProfileImageService.shared.fetchProfileImageURL(username: profile.username) { _ in }
-
+                
                 completion(.success(profile))
-
+                
             case .failure(let error):
                 // Игнорируем ошибку отмены запроса
                 if (error as? URLError)?.code == .cancelled { return }
@@ -48,7 +48,7 @@ final class ProfileService: ProfileServiceProtocol {
                 completion(.failure(error))
             }
         }
-
+        
         self.task = newTask
         newTask.resume()
     }
@@ -58,13 +58,13 @@ final class ProfileService: ProfileServiceProtocol {
         guard var urlComponents = URLComponents(url: UnsplashConst.defaultApiURL, resolvingAgainstBaseURL: false) else {
             return nil
         }
-
+        
         urlComponents.path = "/me"
-
+        
         guard let url = urlComponents.url else {
             return nil
         }
-
+        
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
