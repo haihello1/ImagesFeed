@@ -1,5 +1,6 @@
 // MARK: - AuthViewController.swift
 import UIKit
+import ProgressHUD
 
 protocol AuthViewControllerDelegate: AnyObject {
     func didAuthenticate(_ vc: AuthViewController)
@@ -7,6 +8,7 @@ protocol AuthViewControllerDelegate: AnyObject {
 
 final class AuthViewController: UIViewController {
     
+    private let tokenStorage = OAuth2TokenStorage()
     weak var delegate: AuthViewControllerDelegate?
     
     private let unsplashLogo: UIImageView = {
@@ -60,5 +62,44 @@ final class AuthViewController: UIViewController {
         let webViewVC = WebViewViewController()
         webViewVC.delegate = self
         navigationController?.pushViewController(webViewVC, animated: true)
+    }
+}
+
+extension AuthViewController: WebViewViewControllerDelegate {
+    
+    func webViewViewControllerDidCancel(_ vc: WebViewViewController) {
+        navigationController?.popViewController(animated: true)
+    }
+    
+    func webViewViewController(_ vc: WebViewViewController, didAuthenticateWithCode code: String) {
+        
+        navigationController?.popViewController(animated: true)
+        
+        UIBlockingProgressHUD.show()
+                
+        OAuth2Service.shared.fetchOAuthToken(code) { [weak self] result in
+
+            UIBlockingProgressHUD.dismiss()
+            
+            guard let self else { return }
+            
+            switch result {
+            case .success(let token):
+                tokenStorage.token = token
+                self.delegate?.didAuthenticate(self)
+                
+            case .failure(let error):
+                print("[AuthViewController.didAuthenticate]: NetworkError - \(error)")
+
+                let alert = UIAlertController(
+                    title: "Что-то пошло не так",
+                    message: "Не удалось войти в систему",
+                    preferredStyle: .alert
+                )
+
+                alert.addAction(UIAlertAction(title: "Ок", style: .default))
+                self.present(alert, animated: true)
+            }
+        }
     }
 }

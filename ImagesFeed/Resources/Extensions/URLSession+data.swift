@@ -1,6 +1,16 @@
 // MARK: - URLSession+Extensions.swift
 import Foundation
 
+enum NetworkError: Error {
+    case httpStatusCode(Int)
+    case urlRequestError(Error)
+    case urlSessionError
+    case invalidRequest
+    case invalidResponse
+    case noData
+    case decodingError(Error)
+}
+
 extension URLSession {
     func data(
         for request: URLRequest,
@@ -11,7 +21,6 @@ extension URLSession {
                 completion(result)
             }
         }
-        
         let task = dataTask(with: request) { data, response, error in
             if let error = error {
                 print("❌ [URLSession] Network error: \(error.localizedDescription)")
@@ -36,6 +45,32 @@ extension URLSession {
             } else {
                 print("❌ [URLSession] HTTP error with status code: \(statusCode)")
                 fulfillCompletionOnTheMainThread(.failure(NetworkError.httpStatusCode(statusCode)))
+            }
+        }
+        
+        return task
+    }
+    
+    func objectTask<T: Decodable>(
+        for request: URLRequest,
+        completion: @escaping (Result<T, Error>) -> Void
+    ) -> URLSessionTask {
+        
+        let decoder = JSONDecoder()
+        
+        let task = data(for: request) { result in
+            switch result {
+            case .success(let data):
+                do {
+                    let decoded = try decoder.decode(T.self, from: data)
+                    completion(.success(decoded))
+                } catch {
+                    print("❌ [objectTask] Decoding error: \(error.localizedDescription), Data: \(String(data: data, encoding: .utf8) ?? "")")
+                    completion(.failure(NetworkError.decodingError(error)))
+                }
+                
+            case .failure(let error):
+                completion(.failure(error))
             }
         }
         
