@@ -5,7 +5,7 @@ final class ProfileImageService {
     static let shared = ProfileImageService()
     private init() {}
     
-    static let didChangeNotification = Notification.Name("ProfileImageProviderDidChange")
+    static let didChangeNotification = Notification.Name(rawValue: "ProfileImageProviderDidChange")
     
     private(set) var avatarURL: String?
     private var task: URLSessionTask?
@@ -14,7 +14,7 @@ final class ProfileImageService {
 
         task?.cancel()
         
-        guard let token = OAuth2TokenStorage().token else {
+        guard let token = OAuth2TokenStorage.shared.token else {
             print("[ProfileImageService.fetchProfileImageURL]: invalidRequest - no token")
             completion(.failure(ProfileRequestError.invalidRequest))
             return
@@ -69,5 +69,11 @@ final class ProfileImageService {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
+    }
+    
+    func clear() {
+        task?.cancel()
+        task = nil
+        avatarURL = nil
     }
 }

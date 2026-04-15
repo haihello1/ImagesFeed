@@ -3,7 +3,6 @@ import UIKit
 final class SplashViewController: UIViewController {
 
     // MARK: - Properties
-    private let storage = OAuth2TokenStorage()
     private let profileService = ProfileService.shared
     private var isFirstAppearance = true // Добавили флаг
     
@@ -36,7 +35,7 @@ final class SplashViewController: UIViewController {
         guard isFirstAppearance else { return }
         isFirstAppearance = false
         
-        if let token = storage.token {
+        if let token = OAuth2TokenStorage.shared.token {
             fetchProfile(token: token)
         } else {
             showAuthViewController()
@@ -103,7 +102,7 @@ final class SplashViewController: UIViewController {
         )
 
         alert.addAction(UIAlertAction(title: "Повторить", style: .default) { [weak self] _ in
-            guard let token = self?.storage.token else { return }
+            guard let token = OAuth2TokenStorage.shared.token else { return }
             self?.fetchProfile(token: token)
         })
 
@@ -115,7 +114,7 @@ final class SplashViewController: UIViewController {
     }
     
     private func logout() {
-        storage.token = nil
+        OAuth2TokenStorage.shared.token = nil
         showAuthViewController()
     }
     
@@ -165,7 +164,7 @@ extension SplashViewController: AuthViewControllerDelegate {
     func didAuthenticate(_ vc: AuthViewController) {
         vc.dismiss(animated: true)
 
-        guard let token = storage.token else {
+        guard let token = OAuth2TokenStorage.shared.token else {
             return
         }
 
