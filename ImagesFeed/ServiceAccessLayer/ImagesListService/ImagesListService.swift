@@ -8,6 +8,8 @@ final class ImagesListService {
 
     static let didChangeNotification = Notification.Name("ImagesListServiceDidChange")
     private(set) var photos: [Photo] = []
+    private static let iso8601Formatter = ISO8601DateFormatter()
+
     
     func fetchPhotosNextPage() {
         assert(Thread.isMainThread)
@@ -23,9 +25,8 @@ final class ImagesListService {
             switch result {
             case .success(let results):
                 let newPhotos = results.map { res in
-                    let iso8601Formatter = ISO8601DateFormatter()
                     let createdAtString = res.createdAt.map {
-                        iso8601Formatter.string(from: $0)
+                        Self.iso8601Formatter.string(from: $0)
                     }
                     
                     return Photo(
