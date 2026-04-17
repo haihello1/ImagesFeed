@@ -57,7 +57,7 @@ extension URLSession {
     ) -> URLSessionTask {
         
         let decoder = JSONDecoder()
-        
+        decoder.dateDecodingStrategy = .iso8601
         let task = data(for: request) { result in
             switch result {
             case .success(let data):

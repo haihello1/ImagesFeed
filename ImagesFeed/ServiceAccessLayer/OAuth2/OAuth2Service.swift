@@ -9,7 +9,6 @@ final class OAuth2Service {
     private var task: URLSessionTask?
     private var lastCode: String?
 
-    private let tokenStorage = OAuth2TokenStorage()
 
     private init() {}
 

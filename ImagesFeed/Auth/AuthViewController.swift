@@ -8,7 +8,6 @@ protocol AuthViewControllerDelegate: AnyObject {
 
 final class AuthViewController: UIViewController {
     
-    private let tokenStorage = OAuth2TokenStorage()
     weak var delegate: AuthViewControllerDelegate?
     
     private let unsplashLogo: UIImageView = {
@@ -85,7 +84,7 @@ extension AuthViewController: WebViewViewControllerDelegate {
             
             switch result {
             case .success(let token):
-                tokenStorage.token = token
+                OAuth2TokenStorage.shared.token = token
                 self.delegate?.didAuthenticate(self)
                 
             case .failure(let error):

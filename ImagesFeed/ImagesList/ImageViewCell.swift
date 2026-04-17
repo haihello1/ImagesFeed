@@ -1,8 +1,14 @@
 import UIKit
+import Kingfisher
+
+protocol ImageViewCellDelegate: AnyObject {
+    func imageViewCellDidTapLike(_ cell: ImageViewCell)
+}
 
 final class ImageViewCell: UITableViewCell {
     
     static let identifier = "ImageViewCell"
+    weak var delegate: ImageViewCellDelegate?
     
     private let mainImageView: UIImageView = {
         let iv = UIImageView()
@@ -20,25 +26,37 @@ final class ImageViewCell: UITableViewCell {
     }()
     
     private let likeButton: UIButton = {
-        let lb = UIButton()
-        let img = UIImage(resource: .likeInactive)
-        lb.setImage(img, for: .normal)
-        return lb
+        let button = UIButton()
+        return button
     }()
     
-    private var isLiked = false
-
+    private var currentTask: DownloadTask?
+    
+    private var gradientLayer: CAGradientLayer?
+    
     // MARK: - Init
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupUI()
     }
     
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatalError()
+    }
+    
+    // MARK: - Lifecycle
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        currentTask?.cancel()
+        mainImageView.image = nil
+        delegate = nil
+        removeGradient()
     }
     
     // MARK: - Setup
+    
     private func setupUI() {
         contentView.backgroundColor = AppColors.background
         
@@ -47,48 +65,95 @@ final class ImageViewCell: UITableViewCell {
             contentView.addSubview($0)
         }
         
-        setupConstraints()
-        likeButton.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
-    }
-
-    @objc private func imageDoubleTapped() {
-        likeToggle()
-    }
-    
-    private func setupConstraints() {
         NSLayoutConstraint.activate([
             mainImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: AppLayout.spacingVertical),
             mainImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: AppLayout.spacingHorizontal),
             mainImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -AppLayout.spacingHorizontal),
             mainImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -AppLayout.spacingVertical),
             
-            dateLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -AppLayout.spacingVertical - AppLayout.spacingBetweenLines),
-            dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: AppLayout.spacingHorizontal + AppLayout.spacingBetweenLines),
+            dateLabel.leadingAnchor.constraint(equalTo: mainImageView.leadingAnchor, constant: 8),
+            dateLabel.bottomAnchor.constraint(equalTo: mainImageView.bottomAnchor, constant: -8),
             
-            likeButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -AppLayout.spacingHorizontal),
-            likeButton.topAnchor.constraint(equalTo: contentView.topAnchor, constant: AppLayout.spacingVertical),
-            likeButton.widthAnchor.constraint(equalToConstant: AppLayout.likeImageSize),
-            likeButton.heightAnchor.constraint(equalToConstant: AppLayout.likeImageSize),
+            likeButton.topAnchor.constraint(equalTo: mainImageView.topAnchor, constant: 8),
+            likeButton.trailingAnchor.constraint(equalTo: mainImageView.trailingAnchor, constant: -8),
+            likeButton.widthAnchor.constraint(equalToConstant: 44),
+            likeButton.heightAnchor.constraint(equalToConstant: 44)
         ])
+        
+        likeButton.addTarget(self, action: #selector(likeButtonTapped), for: .touchUpInside)
     }
     
-    // MARK: - Actions
-    @objc private func buttonTapped() {
-        likeToggle()
+    // MARK: - Gradient
+    
+    private func addGradient() {
+        guard gradientLayer == nil else { return }
+        
+        let gradient = CAGradientLayer()
+        gradient.frame = mainImageView.bounds
+        gradient.cornerRadius = AppLayout.cornerRadius
+        gradient.masksToBounds = true
+        gradient.locations = [0, 0.1, 0.3]
+        gradient.colors = [
+            UIColor(red: 0.682, green: 0.686, blue: 0.706, alpha: 1).cgColor,
+            UIColor(red: 0.531, green: 0.533, blue: 0.553, alpha: 1).cgColor,
+            UIColor(red: 0.431, green: 0.433, blue: 0.453, alpha: 1).cgColor
+        ]
+        gradient.startPoint = CGPoint(x: 0, y: 0.5)
+        gradient.endPoint = CGPoint(x: 1, y: 0.5)
+        
+        mainImageView.layer.addSublayer(gradient)
+        gradientLayer = gradient
+        
+        let animation = CABasicAnimation(keyPath: "locations")
+        animation.fromValue = [0, 0.1, 0.3]
+        animation.toValue = [0, 0.8, 1]
+        animation.duration = 1.0
+        animation.repeatCount = .infinity
+        gradient.add(animation, forKey: "locationsChange")
     }
     
-    private func likeToggle() {
-        isLiked.toggle()
-        let imageName = isLiked ? "likeActive" : "likeInactive"
-        let image = UIImage(named: imageName)
-        likeButton.setImage(image, for: .normal)
-        let notificationFeedback = UINotificationFeedbackGenerator()
-        notificationFeedback.notificationOccurred(.warning)
+    private func removeGradient() {
+        gradientLayer?.removeFromSuperlayer()
+        gradientLayer = nil
     }
-
-    // MARK: - Configure
-    func configure(with image: UIImage?, date: String? = nil) {
-        mainImageView.image = image
-        dateLabel.text = date ?? "15 September 2025"
+    
+    // MARK: - Layout
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        gradientLayer?.frame = mainImageView.bounds
+    }
+    
+    // MARK: - Public
+    
+    @objc private func likeButtonTapped() {
+        delegate?.imageViewCellDidTapLike(self)
+    }
+    
+    func setIsLiked(_ isLiked: Bool) {
+        let likeImage = isLiked ? UIImage(named: "likeActive") : UIImage(named: "likeInactive")
+        likeButton.setImage(likeImage, for: .normal)
+    }
+    
+    func configure(with photo: Photo) {
+        dateLabel.text = photo.createdAt
+        setIsLiked(photo.isLiked)
+        
+        guard let url = URL(string: photo.thumbImageURL) else { return }
+        
+        addGradient()
+        
+        mainImageView.kf.indicatorType = .activity
+        currentTask = mainImageView.kf.setImage(
+            with: url,
+            placeholder: UIImage(named: "stub")
+        ) { [weak self] _ in
+            guard let self,
+                  let tableView = self.superview as? UITableView,
+                  let indexPath = tableView.indexPath(for: self) else { return }
+            
+            self.removeGradient()
+            tableView.reloadRows(at: [indexPath], with: .automatic)
+        }
     }
 }

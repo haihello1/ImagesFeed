@@ -3,15 +3,23 @@ import UIKit
 final class ImageFeedViewController: UIViewController {
     
     private let imagesTable = UITableView()
-    private let seasons = (0...19).map { String($0) }
+    private var photos: [Photo] = []
+    private let imagesListService = ImagesListService()
+    private var imagesListServiceObserver: NSObjectProtocol?
 
-    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupObserver()
+        imagesListService.fetchPhotosNextPage()
     }
     
-    // MARK: - Setup
+    deinit {
+        if let observer = imagesListServiceObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+    
     private func setupUI() {
         view.backgroundColor = AppColors.background
         setupTableView()
@@ -36,57 +44,101 @@ final class ImageFeedViewController: UIViewController {
             imagesTable.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
+    
+    private func setupObserver() {
+        imagesListServiceObserver = NotificationCenter.default.addObserver(
+            forName: ImagesListService.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.updateTableViewAnimated()
+        }
+    }
+    
+    private func updateTableViewAnimated() {
+        let oldCount = photos.count
+        let newCount = imagesListService.photos.count
+        guard oldCount != newCount else { return }
+        
+        photos = imagesListService.photos
+        let indexPaths = (oldCount..<newCount).map { IndexPath(row: $0, section: 0) }
+        
+        imagesTable.performBatchUpdates {
+            imagesTable.insertRows(at: indexPaths, with: .automatic)
+        }
+    }
+    
+    private func showErrorAlert() {
+        let alert = UIAlertController(
+            title: "Что-то пошло не так(",
+            message: "Не удалось изменить состояние лайка",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Ок", style: .default))
+        present(alert, animated: true)
+    }
 }
 
-// MARK: - UITableViewDataSource
 extension ImageFeedViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return seasons.count
+        photos.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(
             withIdentifier: ImageViewCell.identifier,
             for: indexPath
-        ) as? ImageViewCell else {
-            return UITableViewCell()
-        }
+        ) as? ImageViewCell else { return UITableViewCell() }
         
-        let imageName = seasons[indexPath.row]
-        cell.configure(with: UIImage(named: imageName))
+        cell.delegate = self
+        cell.configure(with: photos[indexPath.row])
         return cell
     }
 }
 
-// MARK: - UITableViewDelegate
 extension ImageFeedViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        guard let image = UIImage(named: seasons[indexPath.row]) else {
-            return 100
-        }
-        
-        let imageInsets = UIEdgeInsets(
-            top: AppLayout.spacingVertical,
-            left: AppLayout.spacingHorizontal,
-            bottom: AppLayout.spacingVertical,
-            right: AppLayout.spacingHorizontal
-        )
-        
+        let photo = photos[indexPath.row]
+        let imageInsets = UIEdgeInsets(top: 4, left: 16, bottom: 4, right: 16)
         let imageViewWidth = tableView.bounds.width - imageInsets.left - imageInsets.right
-        let imageWidth = image.size.width
-        let scale = imageViewWidth / imageWidth
-        let cellHeight = image.size.height * scale + imageInsets.top + imageInsets.bottom
-        
-        return ceil(cellHeight)
+        let scale = imageViewWidth / photo.size.width
+        return photo.size.height * scale + imageInsets.top + imageInsets.bottom
     }
-
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
+        let photo = photos[indexPath.row]
+        guard let url = URL(string: photo.largeImageURL) else { return }
+        let vc = SingleImageViewController()
+        vc.imageURL = url
+        vc.modalPresentationStyle = .fullScreen
+        present(vc, animated: true)
+    }
+    
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if indexPath.row == photos.count - 1 {
+            imagesListService.fetchPhotosNextPage()
+        }
+    }
+}
+
+extension ImageFeedViewController: ImageViewCellDelegate {
+    func imageViewCellDidTapLike(_ cell: ImageViewCell) {
+        guard let indexPath = imagesTable.indexPath(for: cell) else { return }
+        let photo = photos[indexPath.row]
         
-        guard let image = UIImage(named: seasons[indexPath.row]) else { return }
+        UIBlockingProgressHUD.show()
         
-        let photoViewer = SingleImageViewController(image: image)
-        photoViewer.modalPresentationStyle = .fullScreen
-        present(photoViewer, animated: true)
+        imagesListService.changeLike(photoId: photo.id, isLike: !photo.isLiked) { [weak self] result in
+            guard let self else { return }
+            UIBlockingProgressHUD.dismiss()
+            
+            switch result {
+            case .success:
+                self.photos = self.imagesListService.photos
+                cell.setIsLiked(self.photos[indexPath.row].isLiked)
+            case .failure:
+                self.showErrorAlert()
+            }
+        }
     }
 }

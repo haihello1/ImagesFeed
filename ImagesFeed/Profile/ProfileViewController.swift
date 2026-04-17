@@ -4,13 +4,15 @@ import Kingfisher
 final class ProfileViewController: UIViewController {
 
     // MARK: - UI Elements
-    lazy private var profileImageView = UIImageView()
-    lazy private var logoutButton = UIButton()
-    lazy private var nameSurname = UILabel()
-    lazy private var username = UILabel()
-    lazy private var profileMessage = UILabel()
+    private let profileImageView = UIImageView()
+    private let logoutButton = UIButton()
+    private let nameSurname = UILabel()
+    private let username = UILabel()
+    private let profileMessage = UILabel()
 
     private var profileImageServiceObserver: NSObjectProtocol?
+    
+    private var animationLayers = Set<CALayer>()
 
     // MARK: - Init
 
@@ -23,21 +25,86 @@ final class ProfileViewController: UIViewController {
     }
 
     // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         updateProfileDetails()
-        profileImageServiceObserver = NotificationCenter.default    // 2
+        
+        profileImageServiceObserver = NotificationCenter.default
             .addObserver(
-                forName: ProfileImageService.didChangeNotification, // 3
-                object: nil,                                        // 4
-                queue: .main                                        // 5
+                forName: ProfileImageService.didChangeNotification,
+                object: nil,
+                queue: .main
             ) { [weak self] _ in
                 guard let self = self else { return }
-                self.updateAvatar()                                 // 6
+                self.updateAvatar()
+                self.removeGradients()
             }
-        updateAvatar()
     }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        if ProfileImageService.shared.avatarURL != nil {
+            updateAvatar()
+        } else {
+            addGradients()
+        }
+    }
+    
+    // MARK: - Gradient
+    
+    private func addGradient(to layer: CALayer, size: CGSize, cornerRadius: CGFloat = 0) {
+        let gradient = CAGradientLayer()
+        gradient.frame = CGRect(origin: .zero, size: size)
+        gradient.locations = [0, 0.1, 0.3]
+        gradient.colors = [
+            UIColor(red: 0.682, green: 0.686, blue: 0.706, alpha: 1).cgColor,
+            UIColor(red: 0.531, green: 0.533, blue: 0.553, alpha: 1).cgColor,
+            UIColor(red: 0.431, green: 0.433, blue: 0.453, alpha: 1).cgColor
+        ]
+        gradient.startPoint = CGPoint(x: 0, y: 0.5)
+        gradient.endPoint = CGPoint(x: 1, y: 0.5)
+        gradient.cornerRadius = cornerRadius
+        gradient.masksToBounds = true
+        
+        layer.addSublayer(gradient)
+        animationLayers.insert(gradient)
+        
+        let animation = CABasicAnimation(keyPath: "locations")
+        animation.fromValue = [0, 0.1, 0.3]
+        animation.toValue = [0, 0.8, 1]
+        animation.duration = 1.0
+        animation.repeatCount = .infinity
+        gradient.add(animation, forKey: "locationsChange")
+    }
+    
+    private func addGradients() {
+        guard animationLayers.isEmpty else { return }
+        
+        let avatarSize = AppLayout.avatarSize
+        addGradient(
+            to: profileImageView.layer,
+            size: CGSize(width: avatarSize, height: avatarSize),
+            cornerRadius: avatarSize / 2
+        )
+        
+        for label in [nameSurname, username, profileMessage] {
+            let size = CGSize(
+                width: label.bounds.width > 0 ? label.bounds.width : 200,
+                height: label.bounds.height > 0 ? label.bounds.height : 20
+            )
+            addGradient(to: label.layer, size: size, cornerRadius: 8)
+        }
+    }
+    
+    private func removeGradients() {
+        animationLayers.forEach { $0.removeFromSuperlayer() }
+        animationLayers.removeAll()
+    }
+    
+    // MARK: - Avatar
     
     private func updateAvatar() {
         guard
@@ -57,6 +124,7 @@ final class ProfileViewController: UIViewController {
     }
     
     // MARK: - Setup
+    
     private func setupUI() {
         view.backgroundColor = AppColors.background
         setupSubviews()
@@ -70,7 +138,32 @@ final class ProfileViewController: UIViewController {
     }
 
     @objc private func logoutButtonPressed() {
-        OAuth2TokenStorage().token = nil
+        let alert = UIAlertController(
+            title: "Пока-пока!",
+            message: "Уверены, что хотите выйти?",
+            preferredStyle: .alert
+        )
+        
+        let yesAction = UIAlertAction(title: "Да", style: .default) { [weak self] _ in
+            self?.performLogout()
+        }
+        
+        let noAction = UIAlertAction(title: "Нет", style: .cancel)
+        
+        alert.addAction(yesAction)
+        alert.addAction(noAction)
+        
+        present(alert, animated: true)
+    }
+
+    private func performLogout() {
+        ProfileLogoutService.shared.logout()
+        
+        guard let window = UIApplication.shared.windows.first else { return }
+        
+        let splashViewController = SplashViewController()
+        
+        window.rootViewController = splashViewController
     }
 
     private func setupSubviews() {
@@ -125,6 +218,7 @@ final class ProfileViewController: UIViewController {
     }
 
     // MARK: - Profile Display
+    
     private func updateProfileDetails() {
         guard let profile = ProfileService.shared.profile else {
             print("[ProfileViewController.updateProfileDetails]: profile not loaded")
