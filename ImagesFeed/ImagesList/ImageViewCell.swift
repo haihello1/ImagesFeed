@@ -3,6 +3,7 @@ import Kingfisher
 
 protocol ImageViewCellDelegate: AnyObject {
     func imageViewCellDidTapLike(_ cell: ImageViewCell)
+    func imageViewCellDidFinishLoading(_ cell: ImageViewCell)
 }
 
 final class ImageViewCell: UITableViewCell {
@@ -133,6 +134,7 @@ final class ImageViewCell: UITableViewCell {
     func setIsLiked(_ isLiked: Bool) {
         let likeImage = isLiked ? UIImage(named: "likeActive") : UIImage(named: "likeInactive")
         likeButton.setImage(likeImage, for: .normal)
+        likeButton.accessibilityIdentifier = isLiked ? "like button on" : "like button off"
     }
     
     func configure(with photo: Photo) {
@@ -150,10 +152,10 @@ final class ImageViewCell: UITableViewCell {
         ) { [weak self] _ in
             guard let self,
                   let tableView = self.superview as? UITableView,
-                  let indexPath = tableView.indexPath(for: self) else { return }
+                  let _ = tableView.indexPath(for: self) else { return }
             
             self.removeGradient()
-            tableView.reloadRows(at: [indexPath], with: .automatic)
+            self.delegate?.imageViewCellDidFinishLoading(self)
         }
     }
 }

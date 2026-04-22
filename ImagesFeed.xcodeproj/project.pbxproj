@@ -13,6 +13,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		A5AC66E12F9833EF007CC510 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A5C6E9732E82DFB00064D206 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5C6E97A2E82DFB00064D206;
+			remoteInfo = ImagesFeed;
+		};
 		A5C0D68D2F8F0ED900367881 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A5C6E9732E82DFB00064D206 /* Project object */;
@@ -23,6 +30,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A5AC66DB2F9833EF007CC510 /* ImagesFeedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ImagesFeedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A5C0D6892F8F0ED800367881 /* ImagesFeedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ImagesFeedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A5C6E97B2E82DFB00064D206 /* ImagesFeed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ImagesFeed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -38,6 +46,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		A5AC66DC2F9833EF007CC510 /* ImagesFeedUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ImagesFeedUITests;
+			sourceTree = "<group>";
+		};
 		A5C0D68A2F8F0ED800367881 /* ImagesFeedTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ImagesFeedTests;
@@ -54,6 +67,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		A5AC66D82F9833EF007CC510 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A5C0D6862F8F0ED800367881 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -79,6 +99,7 @@
 			children = (
 				A5C6E97D2E82DFB10064D206 /* ImagesFeed */,
 				A5C0D68A2F8F0ED800367881 /* ImagesFeedTests */,
+				A5AC66DC2F9833EF007CC510 /* ImagesFeedUITests */,
 				A5C6E97C2E82DFB00064D206 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +109,7 @@
 			children = (
 				A5C6E97B2E82DFB00064D206 /* ImagesFeed.app */,
 				A5C0D6892F8F0ED800367881 /* ImagesFeedTests.xctest */,
+				A5AC66DB2F9833EF007CC510 /* ImagesFeedUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,6 +117,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A5AC66DA2F9833EF007CC510 /* ImagesFeedUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A5AC66E32F9833EF007CC510 /* Build configuration list for PBXNativeTarget "ImagesFeedUITests" */;
+			buildPhases = (
+				A5AC66D72F9833EF007CC510 /* Sources */,
+				A5AC66D82F9833EF007CC510 /* Frameworks */,
+				A5AC66D92F9833EF007CC510 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A5AC66E22F9833EF007CC510 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A5AC66DC2F9833EF007CC510 /* ImagesFeedUITests */,
+			);
+			name = ImagesFeedUITests;
+			packageProductDependencies = (
+			);
+			productName = ImagesFeedUITests;
+			productReference = A5AC66DB2F9833EF007CC510 /* ImagesFeedUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		A5C0D6882F8F0ED800367881 /* ImagesFeedTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A5C0D68F2F8F0ED900367881 /* Build configuration list for PBXNativeTarget "ImagesFeedTests" */;
@@ -153,6 +198,10 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					A5AC66DA2F9833EF007CC510 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = A5C6E97A2E82DFB00064D206;
+					};
 					A5C0D6882F8F0ED800367881 = {
 						CreatedOnToolsVersion = 16.2;
 						TestTargetID = A5C6E97A2E82DFB00064D206;
@@ -183,11 +232,19 @@
 			targets = (
 				A5C6E97A2E82DFB00064D206 /* ImagesFeed */,
 				A5C0D6882F8F0ED800367881 /* ImagesFeedTests */,
+				A5AC66DA2F9833EF007CC510 /* ImagesFeedUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A5AC66D92F9833EF007CC510 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A5C0D6872F8F0ED800367881 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -205,6 +262,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A5AC66D72F9833EF007CC510 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A5C0D6852F8F0ED800367881 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -222,6 +286,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		A5AC66E22F9833EF007CC510 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5C6E97A2E82DFB00064D206 /* ImagesFeed */;
+			targetProxy = A5AC66E12F9833EF007CC510 /* PBXContainerItemProxy */;
+		};
 		A5C0D68E2F8F0ED900367881 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A5C6E97A2E82DFB00064D206 /* ImagesFeed */;
@@ -230,6 +299,40 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		A5AC66E42F9833EF007CC510 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 35R8U596DX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sd.rrii.ImagesFeedUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ImagesFeed;
+			};
+			name = Debug;
+		};
+		A5AC66E52F9833EF007CC510 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 35R8U596DX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = sd.rrii.ImagesFeedUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ImagesFeed;
+			};
+			name = Release;
+		};
 		A5C0D6902F8F0ED900367881 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -278,8 +381,8 @@
 				INFOPLIST_FILE = ImagesFeed/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -306,8 +409,8 @@
 				INFOPLIST_FILE = ImagesFeed/Resources/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -444,6 +547,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A5AC66E32F9833EF007CC510 /* Build configuration list for PBXNativeTarget "ImagesFeedUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A5AC66E42F9833EF007CC510 /* Debug */,
+				A5AC66E52F9833EF007CC510 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A5C0D68F2F8F0ED900367881 /* Build configuration list for PBXNativeTarget "ImagesFeedTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

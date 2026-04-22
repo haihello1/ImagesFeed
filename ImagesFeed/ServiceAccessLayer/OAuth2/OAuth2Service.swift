@@ -1,16 +1,15 @@
 // MARK: - OAuth2Service.swift
 import Foundation
 
-final class OAuth2Service {
-    
-    static let shared = OAuth2Service()
+protocol OAuth2ServiceProtocol {
+    func fetchOAuthToken(_ code: String, completion: @escaping (Result<String, Error>) -> Void)
+}
+
+final class OAuth2Service: OAuth2ServiceProtocol {
 
     private let urlSession = URLSession.shared
     private var task: URLSessionTask?
     private var lastCode: String?
-
-
-    private init() {}
 
     func fetchOAuthToken(_ code: String, completion: @escaping (Result<String, Error>) -> Void) {
         assert(Thread.isMainThread)
@@ -63,7 +62,7 @@ final class OAuth2Service {
 
     private func makeOAuthTokenRequest(code: String) -> URLRequest? {
 
-        guard var urlComponents = URLComponents(url: UnsplashConst.defaultBaseURL, resolvingAgainstBaseURL: false) else {
+        guard var urlComponents = URLComponents(string: UnsplashConst.baseURL) else {
             print("[OAuth2Service.makeOAuthTokenRequest]: invalidRequest - code: \(code)")
             return nil
         }

@@ -10,6 +10,24 @@ final class AuthViewController: UIViewController {
     
     weak var delegate: AuthViewControllerDelegate?
     
+    var authService: OAuth2ServiceProtocol
+    var tokenStorage: OAuth2TokenStorageProtocol
+    
+    init(delegate: AuthViewControllerDelegate? = nil,
+         tokenStorage: OAuth2TokenStorageProtocol,
+         authService: OAuth2ServiceProtocol
+    ) {
+        self.delegate = delegate
+        self.tokenStorage = tokenStorage
+        self.authService = authService
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     private let unsplashLogo: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(resource: .unsplashLogo)
@@ -27,6 +45,7 @@ final class AuthViewController: UIViewController {
         btn.layer.cornerRadius = 16
         btn.layer.masksToBounds = true
         btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.accessibilityIdentifier = "Authenticate"
         return btn
     }()
     
@@ -56,27 +75,30 @@ final class AuthViewController: UIViewController {
             loginButton.heightAnchor.constraint(equalToConstant: 48)
         ])
     }
-    
+
     @objc private func loginButtonTapped() {
-        let webViewVC = WebViewViewController()
+        let webViewPresenter = WebViewPresenter(authHelper: AuthHelper())
+        let webViewVC = WebViewController()
+        webViewVC.presenter = webViewPresenter
         webViewVC.delegate = self
+        webViewPresenter.view = webViewVC
         navigationController?.pushViewController(webViewVC, animated: true)
     }
 }
 
 extension AuthViewController: WebViewViewControllerDelegate {
     
-    func webViewViewControllerDidCancel(_ vc: WebViewViewController) {
+    func webViewViewControllerDidCancel(_ vc: WebViewController) {
         navigationController?.popViewController(animated: true)
     }
     
-    func webViewViewController(_ vc: WebViewViewController, didAuthenticateWithCode code: String) {
+    func webViewViewController(_ vc: WebViewController, didAuthenticateWithCode code: String) {
         
         navigationController?.popViewController(animated: true)
         
         UIBlockingProgressHUD.show()
                 
-        OAuth2Service.shared.fetchOAuthToken(code) { [weak self] result in
+        authService.fetchOAuthToken(code) { [weak self] result in
 
             UIBlockingProgressHUD.dismiss()
             
@@ -84,7 +106,7 @@ extension AuthViewController: WebViewViewControllerDelegate {
             
             switch result {
             case .success(let token):
-                OAuth2TokenStorage.shared.token = token
+                tokenStorage.token = token
                 self.delegate?.didAuthenticate(self)
                 
             case .failure(let error):
