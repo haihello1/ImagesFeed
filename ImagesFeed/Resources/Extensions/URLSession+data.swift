@@ -9,6 +9,11 @@ enum NetworkError: Error {
     case invalidResponse
     case noData
     case decodingError(Error)
+    
+    var isUnauthorized: Bool {
+        if case .httpStatusCode(401) = self { return true }
+        return false
+    }
 }
 
 extension URLSession {
@@ -21,6 +26,7 @@ extension URLSession {
                 completion(result)
             }
         }
+        
         let task = dataTask(with: request) { data, response, error in
             if let error = error {
                 print("❌ [URLSession] Network error: \(error.localizedDescription)")
@@ -43,7 +49,6 @@ extension URLSession {
             if 200..<300 ~= statusCode {
                 fulfillCompletionOnTheMainThread(.success(data))
             } else {
-                print("❌ [URLSession] HTTP error with status code: \(statusCode)")
                 fulfillCompletionOnTheMainThread(.failure(NetworkError.httpStatusCode(statusCode)))
             }
         }

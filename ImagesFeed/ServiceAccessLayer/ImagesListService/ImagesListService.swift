@@ -1,15 +1,26 @@
 import Foundation
 
-final class ImagesListService {
+protocol ImagesListServiceProtocol {
+    func fetchPhotosNextPage()
+    
+    func changeLike(photoId: String, isLike: Bool, _ completion: @escaping (Result<Void, Error>) -> Void)
+    func clear()
+    var photos: [Photo] { get }
+}
+
+final class ImagesListService: ImagesListServiceProtocol {
+    private let tokenStorage: OAuth2TokenStorageProtocol
     private let urlSession = URLSession.shared
     private var task: URLSessionTask?
     private var lastLoadedPage: Int?
     
-
+    
     static let didChangeNotification = Notification.Name("ImagesListServiceDidChange")
     private(set) var photos: [Photo] = []
     private static let iso8601Formatter = ISO8601DateFormatter()
-
+    
+    
+    init(tokenStorage: OAuth2TokenStorageProtocol) { self.tokenStorage = tokenStorage }
     
     func fetchPhotosNextPage() {
         assert(Thread.isMainThread)
@@ -39,10 +50,15 @@ final class ImagesListService {
                         isLiked: res.likedByUser
                     )
                 }
+                
                 self.photos.append(contentsOf: newPhotos)
                 self.lastLoadedPage = nextPage
                 NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
             case .failure(let error):
+                if let networkError = error as? NetworkError,
+                   networkError.isUnauthorized {
+                    NotificationCenter.default.post(name: .logoutNeeded, object: nil)
+                }
                 print("[ImagesListService]: Fetch error - \(error)")
             }
         }
@@ -60,9 +76,11 @@ final class ImagesListService {
                 self.updatePhotoLike(photoId: photoId)
                 completion(.success(()))
             case .failure(let error):
-                DispatchQueue.main.async {
-                    completion(.failure(error))
+                if let networkError = error as? NetworkError,
+                   networkError.isUnauthorized {
+                    NotificationCenter.default.post(name: .logoutNeeded, object: nil)
                 }
+                completion(.failure(error))
             }
         }
         task.resume()
@@ -71,7 +89,7 @@ final class ImagesListService {
     private func updatePhotoLike(photoId: String) {
         if let index = photos.firstIndex(where: { $0.id == photoId }) {
             let photo = photos[index]
-
+            
             let newPhoto = Photo(
                 id: photo.id,
                 size: photo.size,
@@ -86,20 +104,23 @@ final class ImagesListService {
     }
     
     private func makePhotosRequest(page: Int) -> URLRequest? {
-        guard let token = OAuth2TokenStorage.shared.token else { return nil }
+        guard let token = tokenStorage.token else { return nil }
         var components = URLComponents(url: UnsplashConst.defaultApiURL, resolvingAgainstBaseURL: false)
         components?.path = "/photos"
         components?.queryItems = [
             URLQueryItem(name: "page", value: "\(page)"),
             URLQueryItem(name: "per_page", value: "10")
         ]
-        var request = URLRequest(url: components!.url!)
+        
+        guard let url = components?.url else { return nil }
+        
+        var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
     }
     
     private func makeLikeRequest(photoId: String, isLike: Bool) -> URLRequest? {
-        guard let token = OAuth2TokenStorage.shared.token else { return nil }
+        guard let token = tokenStorage.token else { return nil }
         var components = URLComponents(url: UnsplashConst.defaultApiURL, resolvingAgainstBaseURL: false)
         components?.path = "/photos/\(photoId)/like"
         var request = URLRequest(url: components!.url!)

@@ -1,8 +1,19 @@
 import UIKit
 import Kingfisher
 
-final class ProfileViewController: UIViewController {
 
+protocol ProfileViewControllerProtocol: AnyObject {
+    var presenter: ProfilePresenterProtocol {get set}
+    func addGradients()
+    func removeAvatarGradient()
+    func removeTextGradients()
+    func setProfileDetails(profile: Profile)
+    func setAvatar(url: URL)
+    func showErrorAlert(message: String)
+}
+
+final class ProfileViewController: UIViewController, ProfileViewControllerProtocol {
+    
     // MARK: - UI Elements
     private let profileImageView = UIImageView()
     private let logoutButton = UIButton()
@@ -10,18 +21,21 @@ final class ProfileViewController: UIViewController {
     private let username = UILabel()
     private let profileMessage = UILabel()
 
-    private var profileImageServiceObserver: NSObjectProtocol?
+    var presenter: ProfilePresenterProtocol
     
-    private var animationLayers = Set<CALayer>()
+    private var avatarAnimationLayers = Set<CALayer>()
+    private var textAnimationLayers = Set<CALayer>()
 
     // MARK: - Init
 
-    init() {
+    init(presenter: ProfilePresenterProtocol) {
+        self.presenter = presenter
+        
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
-        super.init(coder: coder)
+        fatalError("init(coder:) has not been implemented")
     }
 
     // MARK: - Lifecycle
@@ -29,33 +43,13 @@ final class ProfileViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        updateProfileDetails()
-        
-        profileImageServiceObserver = NotificationCenter.default
-            .addObserver(
-                forName: ProfileImageService.didChangeNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                guard let self = self else { return }
-                self.updateAvatar()
-                self.removeGradients()
-            }
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        if ProfileImageService.shared.avatarURL != nil {
-            updateAvatar()
-        } else {
-            addGradients()
-        }
+        presenter.view = self
+        presenter.viewDidLoad()
     }
     
     // MARK: - Gradient
     
-    private func addGradient(to layer: CALayer, size: CGSize, cornerRadius: CGFloat = 0) {
+    private func addGradient(to layer: CALayer, size: CGSize, cornerRadius: CGFloat = 0, storage: inout Set<CALayer>) {
         let gradient = CAGradientLayer()
         gradient.frame = CGRect(origin: .zero, size: size)
         gradient.locations = [0, 0.1, 0.3]
@@ -70,7 +64,7 @@ final class ProfileViewController: UIViewController {
         gradient.masksToBounds = true
         
         layer.addSublayer(gradient)
-        animationLayers.insert(gradient)
+        storage.insert(gradient)
         
         let animation = CABasicAnimation(keyPath: "locations")
         animation.fromValue = [0, 0.1, 0.3]
@@ -80,43 +74,42 @@ final class ProfileViewController: UIViewController {
         gradient.add(animation, forKey: "locationsChange")
     }
     
-    private func addGradients() {
-        guard animationLayers.isEmpty else { return }
-        
-        let avatarSize = AppLayout.avatarSize
-        addGradient(
-            to: profileImageView.layer,
-            size: CGSize(width: avatarSize, height: avatarSize),
-            cornerRadius: avatarSize / 2
-        )
-        
-        for label in [nameSurname, username, profileMessage] {
-            let size = CGSize(
-                width: label.bounds.width > 0 ? label.bounds.width : 200,
-                height: label.bounds.height > 0 ? label.bounds.height : 20
+    func addGradients() {
+        if avatarAnimationLayers.isEmpty {
+            let avatarSize = AppLayout.avatarSize
+            addGradient(
+                to: profileImageView.layer,
+                size: CGSize(width: avatarSize, height: avatarSize),
+                cornerRadius: avatarSize / 2,
+                storage: &avatarAnimationLayers
             )
-            addGradient(to: label.layer, size: size, cornerRadius: 8)
+        }
+        
+        if textAnimationLayers.isEmpty {
+            for label in [nameSurname, username, profileMessage] {
+                let size = CGSize(
+                    width: label.bounds.width > 0 ? label.bounds.width : 200,
+                    height: label.bounds.height > 0 ? label.bounds.height : 20
+                )
+                addGradient(to: label.layer, size: size, cornerRadius: 8, storage: &textAnimationLayers)
+            }
         }
     }
     
-    private func removeGradients() {
-        animationLayers.forEach { $0.removeFromSuperlayer() }
-        animationLayers.removeAll()
+    func removeAvatarGradient() {
+        avatarAnimationLayers.forEach { $0.removeFromSuperlayer() }
+        avatarAnimationLayers.removeAll()
+    }
+    
+    func removeTextGradients() {
+        textAnimationLayers.forEach { $0.removeFromSuperlayer() }
+        textAnimationLayers.removeAll()
     }
     
     // MARK: - Avatar
     
-    private func updateAvatar() {
-        guard
-            let profileImageURL = ProfileImageService.shared.avatarURL,
-            let url = URL(string: profileImageURL)
-        else {
-            print("[ProfileViewController.updateAvatar]: invalidURL")
-            return
-        }
-
+    func setAvatar(url: URL) {
         profileImageView.kf.indicatorType = .activity
-
         profileImageView.kf.setImage(
             with: url,
             placeholder: UIImage(resource: .avatar)
@@ -136,34 +129,27 @@ final class ProfileViewController: UIViewController {
     private func configureLogoutButton() {
         logoutButton.addTarget(self, action: #selector(logoutButtonPressed), for: .touchUpInside)
     }
-
-    @objc private func logoutButtonPressed() {
-        let alert = UIAlertController(
-            title: "Пока-пока!",
-            message: "Уверены, что хотите выйти?",
-            preferredStyle: .alert
-        )
-        
-        let yesAction = UIAlertAction(title: "Да", style: .default) { [weak self] _ in
-            self?.performLogout()
-        }
-        
-        let noAction = UIAlertAction(title: "Нет", style: .cancel)
-        
-        alert.addAction(yesAction)
-        alert.addAction(noAction)
-        
+    
+    func showErrorAlert(message: String) {
+        let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Ок", style: .default))
         present(alert, animated: true)
     }
 
-    private func performLogout() {
-        ProfileLogoutService.shared.logout()
-        
-        guard let window = UIApplication.shared.windows.first else { return }
-        
-        let splashViewController = SplashViewController()
-        
-        window.rootViewController = splashViewController
+    @objc private func logoutButtonPressed() {
+        let alert = UIAlertController(
+            title: "Bye bye!",
+            message: "Уверены, что хотите выйти?",
+            preferredStyle: .alert
+        )
+        let yesAction = UIAlertAction(title: "Yes", style: .default) { [weak self] _ in
+            guard let presenter = self?.presenter else { return }
+            presenter.userDidLogout()
+        }
+        let noAction = UIAlertAction(title: "No", style: .cancel)
+        alert.addAction(yesAction)
+        alert.addAction(noAction)
+        present(alert, animated: true)
     }
 
     private func setupSubviews() {
@@ -206,7 +192,8 @@ final class ProfileViewController: UIViewController {
         profileImageView.contentMode = .scaleAspectFill
 
         logoutButton.setImage(UIImage(resource: .logoutButton), for: .normal)
-
+        logoutButton.accessibilityIdentifier = "logout button"
+        
         nameSurname.font = AppFonts.title
         nameSurname.textColor = AppColors.textPrimary
 
@@ -219,12 +206,7 @@ final class ProfileViewController: UIViewController {
 
     // MARK: - Profile Display
     
-    private func updateProfileDetails() {
-        guard let profile = ProfileService.shared.profile else {
-            print("[ProfileViewController.updateProfileDetails]: profile not loaded")
-            return
-        }
-
+    func setProfileDetails(profile: Profile) {
         nameSurname.text = profile.name
         username.text = profile.loginName
         profileMessage.text = profile.bio

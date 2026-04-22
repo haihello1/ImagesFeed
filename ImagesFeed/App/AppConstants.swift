@@ -30,14 +30,14 @@ enum AppLayout {
 }
 
 enum UnsplashConst {
-    static let accessKey = "eQAonmsvWJxUHtGJv22w3xpomfXherp6Q-WzijhP8V0"
-    static let secretKey = "0aLlKTCzGSjU30o7sSCSvzojQeuR-eb0Bgo7a0mPPGk"
-    static let redirectURI = "urn:ietf:wg:oauth:2.0:oob"
-    static let accessScope = "public+read_user+write_likes"
-    static var defaultApiURL = URL(string: "https://api.unsplash.com")!
-    static let defaultBaseURL = URL(string: "https://unsplash.com")!
-    static let unsplashAuthorizeURLString = "https://unsplash.com/oauth/authorize"
+    static var accessKey: String     { AuthConfiguration.standard.accessKey }
+    static var secretKey: String     { AuthConfiguration.standard.secretKey }
+    static var redirectURI: String   { AuthConfiguration.standard.redirectURI }
+    static var accessScope: String   { AuthConfiguration.standard.accessScope }
+    static var baseAPIURL: URL   { URL(string: AuthConfiguration.standard.baseApiUrlString)! }
+    static var defaultApiURL: URL    { URL(string: "https://api.unsplash.com")! }
     static let tokenKey = "BearerToken"
+    static var baseURL: String       { AuthConfiguration.standard.baseURLString }
 }
 
 enum HTTPMethod: String {

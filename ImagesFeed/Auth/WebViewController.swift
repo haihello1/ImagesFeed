@@ -5,13 +5,22 @@ import UIKit
 // MARK: - WebViewViewController.swift
 
 protocol WebViewViewControllerDelegate: AnyObject {
-    func webViewViewController(_ vc: WebViewViewController, didAuthenticateWithCode code: String)
-    func webViewViewControllerDidCancel(_ vc: WebViewViewController)
+    func webViewViewController(_ vc: WebViewController, didAuthenticateWithCode code: String)
+    func webViewViewControllerDidCancel(_ vc: WebViewController)
 }
 
-final class WebViewViewController: UIViewController {
+public protocol WebViewControllerProtocol: AnyObject {
+    var presenter: WebViewPresenterProtocol? { get set }
+    func load(request: URLRequest)
+    func setProgressValue(_ newValue: Float)
+    func setProgressHidden(_ isHidden: Bool)
+}
+
+final class WebViewController: UIViewController, WebViewControllerProtocol {
     
+    var presenter: WebViewPresenterProtocol?
     weak var delegate: WebViewViewControllerDelegate?
+    
     private var estimatedProgressObservation: NSKeyValueObservation?
     private let webView = WKWebView()
     
@@ -26,7 +35,7 @@ final class WebViewViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        webView.accessibilityIdentifier = "UnsplashWebView"
         view.backgroundColor = .white
         webView.navigationDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
@@ -37,14 +46,20 @@ final class WebViewViewController: UIViewController {
         setupBackButton()
         setupConstraints()
         setupNavigationBar()
-        loadAuthView()
+        presenter?.viewDidLoad()
         
-        estimatedProgressObservation = webView.observe(
-            \.estimatedProgress,
-            options: [.new]
-        ) { [weak self] _, _ in
-            self?.updateProgress()
+        estimatedProgressObservation = webView.observe(\.estimatedProgress) { [weak self] webView, _ in
+            guard let presenter = self?.presenter else { return }
+            presenter.didUpdateProgressValue(webView.estimatedProgress)
         }
+    }
+    
+    func setProgressValue(_ newValue: Float) {
+        progressView.progress = newValue
+    }
+
+    func setProgressHidden(_ isHidden: Bool) {
+        progressView.isHidden = isHidden
     }
     
     private func setupNavigationBar() {
@@ -71,25 +86,7 @@ final class WebViewViewController: UIViewController {
         delegate?.webViewViewControllerDidCancel(self)
     }
     
-    private func loadAuthView() {
-        guard var urlComponents = URLComponents(string: UnsplashConst.unsplashAuthorizeURLString) else {
-            print("❌ [WebViewViewController] Failed to create URLComponents")
-            return
-        }
-        
-        urlComponents.queryItems = [
-            URLQueryItem(name: "client_id", value: UnsplashConst.accessKey),
-            URLQueryItem(name: "redirect_uri", value: UnsplashConst.redirectURI),
-            URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "scope", value: UnsplashConst.accessScope)
-        ]
-        
-        guard let url = urlComponents.url else {
-            print("❌ [WebViewViewController] Failed to create URL from components")
-            return
-        }
-        
-        let request = URLRequest(url: url)
+    func load(request: URLRequest) {
         webView.load(request)
     }
     
@@ -108,17 +105,8 @@ final class WebViewViewController: UIViewController {
     }
 }
 
-// MARK: - Progress update
-extension WebViewViewController {
-    
-    private func updateProgress() {
-        progressView.progress = Float(webView.estimatedProgress)
-        progressView.isHidden = fabs(webView.estimatedProgress - 1.0) <= 0.0001
-    }
-}
-
 // MARK: - WKNavigationDelegate
-extension WebViewViewController: WKNavigationDelegate {
+extension WebViewController: WKNavigationDelegate {
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
@@ -133,12 +121,8 @@ extension WebViewViewController: WKNavigationDelegate {
     }
     
     private func code(from navigationAction: WKNavigationAction) -> String? {
-        if let url = navigationAction.request.url,
-           let urlComponents = URLComponents(string: url.absoluteString),
-           urlComponents.path == "/oauth/authorize/native",
-           let items = urlComponents.queryItems,
-           let codeItem = items.first(where: { $0.name == "code" }) {
-            return codeItem.value
+        if let url = navigationAction.request.url {
+            return presenter?.code(from: url)
         }
         return nil
     }

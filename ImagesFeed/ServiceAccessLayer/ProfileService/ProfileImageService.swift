@@ -1,20 +1,25 @@
 import UIKit
 
-final class ProfileImageService {
+protocol ProfileImageServiceProtocol {
+    func fetchProfileImageURL(username: String, _ completion: @escaping (Result<String, Error>) -> Void)
+    func clear()
+}
+
+final class ProfileImageService: ProfileImageServiceProtocol {
     
-    static let shared = ProfileImageService()
-    private init() {}
-    
-    static let didChangeNotification = Notification.Name(rawValue: "ProfileImageProviderDidChange")
-    
+    private var tokenStorage: OAuth2TokenStorageProtocol
     private(set) var avatarURL: String?
     private var task: URLSessionTask?
+    
+    init(tokenStorage: OAuth2TokenStorageProtocol) {
+        self.tokenStorage = tokenStorage
+    }
     
     func fetchProfileImageURL(username: String, _ completion: @escaping (Result<String, Error>) -> Void) {
 
         task?.cancel()
         
-        guard let token = OAuth2TokenStorage.shared.token else {
+        guard let token = tokenStorage.token else {
             print("[ProfileImageService.fetchProfileImageURL]: invalidRequest - no token")
             completion(.failure(ProfileRequestError.invalidRequest))
             return
@@ -38,7 +43,7 @@ final class ProfileImageService {
                 completion(.success(profileImageURL))
                 
                 NotificationCenter.default.post(
-                    name: ProfileImageService.didChangeNotification,
+                    name: .profileImageChanged,
                     object: self,
                     userInfo: ["URL": profileImageURL]
                 )
